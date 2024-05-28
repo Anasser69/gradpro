@@ -38,7 +38,7 @@ export default function HomeScreen() {
 
   const speechResultHandler = (e) => {
     console.log("Voice Event", e);
-    const text = e.value[0];
+    const text = e.value.join(""); // Join all values in the array to get the full speech result
     setResult(text);
   };
 
@@ -48,6 +48,7 @@ export default function HomeScreen() {
 
   const startRecording = async () => {
     setRecording(true);
+    setMessages(prevMessages => [...prevMessages, { role: "user", content: "Recording..." }]);
     try {
       await Voice.start("en-US", "ar-EG");
     } catch (error) {
@@ -79,13 +80,7 @@ export default function HomeScreen() {
 
   const fetchresponse = () => {
     if (result.trim().length > 0) {
-      let newMessages = [...messages];
-      newMessages.push({ role: "user", content: result });
-      setMessages([...newMessages]);
-
-      // Save voice record to local storage
-      // saveToLocalStorage(result);
-      // console.log(saveToLocalStorage)
+      setMessages(prevMessages => [...prevMessages, { role: "user", content: result }]);
     }
   };
 
@@ -109,6 +104,10 @@ export default function HomeScreen() {
       Voice.destroy().then(Voice.removeAllListeners);
     };
   }, []);
+
+  useEffect(() => {
+    console.log("Messages updated:", messages);
+  }, [messages]);
 
   console.log("result: ", result);
   
@@ -134,7 +133,7 @@ export default function HomeScreen() {
               style={{ fontSize: wp(5) }}
               className="text-gray-700 font-semibold ml-1"
             >
-              Assisstant
+              Assisst
             </Text>
             <View
               style={{ height: hp(58) }}
@@ -145,48 +144,11 @@ export default function HomeScreen() {
                 className="space-y-4"
                 showsHorizontalScrollIndicator={false}
               >
-                {messages.map((message, index) => {
-                  if (message.role == "assisstant") {
-                    if (message.content.includes("https")) {
-                      // it is an image
-                      return (
-                        <View key={index} className="flex-row justify-start">
-                          <View className="p-2 flex rounded-2xl bg-emerald-100 rounded-tl-none">
-                            <Image
-                              source={{ uri: message.content }}
-                              className="rounded-2xl"
-                              resizeMode="contain"
-                              style={{ height: wp(60), width: wp(60) }}
-                            />
-                          </View>
-                        </View>
-                      );
-                    } else {
-                      //text response
-                      return (
-                        <View
-                          key={index}
-                          style={{ width: wp(70) }}
-                          className="bg-emerald-100 rounded-xl p-2 rounded-tl-none"
-                        >
-                          <Text>{message.content}</Text>
-                        </View>
-                      );
-                    }
-                  } else {
-                    // user input
-                    return (
-                      <View key={index} className="justify-end flex-row">
-                        <View
-                          style={{ width: wp(70) }}
-                          className="bg-white rounded-xl p-2 rounded-tr-none"
-                        >
-                          <Text>{message.content}</Text>
-                        </View>
-                      </View>
-                    );
-                  }
-                })}
+                {messages.map((message, index) => (
+                  <View key={index} className="message">
+                    <Text>{message.content}</Text>
+                  </View>
+                ))}
               </ScrollView>
             </View>
           </View>

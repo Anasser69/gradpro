@@ -1,4 +1,3 @@
-
 export const dummyMessages = [
   {
     role: "user",
@@ -6,7 +5,6 @@ export const dummyMessages = [
   },
   {
     role: "assisstant",
-    content:
-      "",
+    content: "",
   },
 ];
