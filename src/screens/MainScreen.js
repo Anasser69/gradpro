@@ -11,6 +11,10 @@ import {
 } from "react-native";
 import React, { useEffect, useState } from "react";
 // import AsyncStorage from "@react-native-async-storage/async-storage";
+  import {
+    Porcupine,
+    BuiltInKeywords,
+  } from "@picovoice/porcupine-react-native";
 import FirstScreen from "./FirstScreen";
 import {
   widthPercentageToDP as wp,
@@ -20,14 +24,77 @@ import {
 import { dummyMessages } from "../constants";
 import Voice from "@react-native-voice/voice";
 const colorimage = require("../../assets/FBG.png");
-export default function MainScreen() {
-  LogBox.ignoreLogs(["new NativeEventEmitter()"]); // Ignore log notification by message
-  LogBox.ignoreAllLogs(); //Ignore all log notifications
 
+
+
+export default function MainScreen() {
   const [messages, setMessages] = useState(dummyMessages);
   const [recording, setRecording] = useState(false);
   const [speaking, setSpeaking] = useState(true);
   const [result, setResult] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  // const porcupineManager = useRef(null);
+    const porcupineManager = React.createRef();
+
+  const [audioData, setAudioData] = useState([]);
+
+    // useEffect(() => {
+    //   createPorcupine();
+
+    //   return () => {
+    //     if (porcupineManager.current) {
+    //       porcupineManager.current.delete();
+    //     }
+    //   };
+    // }, []);
+
+      const createPorcupine = async () => {
+        try {
+          porcupineManager.current = await Porcupine.fromBuiltInKeywords(
+            "MmtesG/JuNPsz0V6ExNm8xDbriUyOoLM7zI01V20Dx3qy8PsFiAhlw==",
+            [BuiltInKeywords.HEY_SIRI]
+          );
+        } catch (err) {
+          console.error("Failed to initialize Porcupine:", err);
+        }
+      };
+
+      const captureAudio = () => {
+        const audioCapture = new SomeAudioCaptureLibrary();
+
+        audioCapture.on("audioFrame", (frame) => {
+          processAudioFrame(frame);
+        });
+
+        audioCapture.start();
+      };
+
+const processAudioFrame = async (buffer) => {
+  try {
+    let keywordIndex = await porcupineManager.current.process(buffer);
+    if (keywordIndex >= 0) {
+      console.log("Wake word detected!");
+      setIsListening(true);
+      startRecording(); // This function is triggered when the keyword is detected
+      console.log("done")
+    }
+  } catch (e) {
+    console.error("Error processing audio frame:", e);
+  }
+};
+
+  useEffect(() => {
+    createPorcupine();
+    captureAudio(); // Call captureAudio here
+
+    return () => {
+      if (porcupineManager.current) {
+        porcupineManager.current.delete();
+      }
+    };
+  }, []);
+
+        
 
   const speechStartHandler = (e) => {
     console.log("Speech Start Handler");
@@ -42,7 +109,7 @@ export default function MainScreen() {
     console.log("Voice Event", e);
     const text = e.value[0]; // Assuming you want the first complete result
     setResult(text);
-    fetchresponse(text); // Pass the result directly to fetchresponse
+    fetchresponse(text); 
   };
 
   const speechErrorHandler = (e) => {
@@ -97,6 +164,8 @@ export default function MainScreen() {
   }, []);
 
   console.log("result: ", result);
+
+  
 
   return (
     <ImageBackground source={colorimage} className="flex-1" resizeMode="cover">
@@ -203,8 +272,8 @@ export default function MainScreen() {
                 onPress={clear}
                 className="bg-neutral-400 rounded-3xl p-2 absolute right-10 top-5"
               > */}
-                {/* <Text className="text-white font-semibold">Clear</Text> */}
-              {/* </TouchableOpacity>
+            {/* <Text className="text-white font-semibold">Clear</Text> */}
+            {/* </TouchableOpacity>
             )} */}
             {/* {speaking && (
               <TouchableOpacity
@@ -215,6 +284,7 @@ export default function MainScreen() {
               </TouchableOpacity>
             )} */}
           </View>
+          <Text>{isListening ? "Listening..." : 'Say "Hey PicoVoice"'}</Text>
         </SafeAreaView>
       </View>
     </ImageBackground>

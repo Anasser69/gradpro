@@ -12,6 +12,8 @@ import {
   Pressable,
   Button,
 } from "react-native";
+import React, { Component } from "react";
+import { Platform, PermissionsAndroid } from "react-native";
 import FirstScreen from "./src/screens/FirstScreen";
 import SecondScreen from "./src/screens/SecondScreen";
 import ThirdScreen from "./src/screens/ThirdScreen";
@@ -27,7 +29,55 @@ const ThirdPageIcon = require("./assets/star.png");
 const FourthPageIcone = require("./assets/info.png");
 const MainPageIcon = require("./assets/add.png");
 
-export default function App() {
+
+ class App extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      hasPermission: false,
+    };
+  }
+
+  componentDidMount() {
+    this._handleAudioPermission();
+  }
+
+  _handleAudioPermission = () => {
+    let recordAudioRequest;
+    if (Platform.OS === 'android') {
+      recordAudioRequest = this._requestRecordAudioPermission();
+    } else {
+      recordAudioRequest = new Promise((resolve) => {
+        resolve(true);
+      });
+    }
+
+    recordAudioRequest.then((hasPermission) => {
+      if (hasPermission) {
+        this.setState({ hasPermission: true });
+        // Code that uses Porcupine or any other audio related code
+      } else {
+        console.log('Permission denied');
+      }
+    });
+  }
+
+  _requestRecordAudioPermission = async () => {
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+      {
+        title: 'Microphone Permission',
+        message: 'This app needs access to your microphone to recognize voice commands.',
+        buttonNeutral: 'Ask Me Later',
+        buttonNegative: 'Cancel',
+        buttonPositive: 'OK',
+      }
+    );
+    return (granted === PermissionsAndroid.RESULTS.GRANTED);
+  }
+  
+
+  render() {
   return (
     <NavigationContainer>
       <Tab.Navigator
@@ -191,3 +241,6 @@ export default function App() {
     </NavigationContainer>
   );
 }
+ }
+
+export default App;
