@@ -11,10 +11,10 @@ import {
 } from "react-native";
 import React, { useEffect, useState } from "react";
 // import AsyncStorage from "@react-native-async-storage/async-storage";
-  import {
-    Porcupine,
-    BuiltInKeywords,
-  } from "@picovoice/porcupine-react-native";
+import {
+  PorcupineManager,
+  BuiltInKeywords,
+} from "@picovoice/porcupine-react-native";
 import FirstScreen from "./FirstScreen";
 import {
   widthPercentageToDP as wp,
@@ -25,76 +25,57 @@ import { dummyMessages } from "../constants";
 import Voice from "@react-native-voice/voice";
 const colorimage = require("../../assets/FBG.png");
 
-
-
 export default function MainScreen() {
   const [messages, setMessages] = useState(dummyMessages);
   const [recording, setRecording] = useState(false);
   const [speaking, setSpeaking] = useState(true);
   const [result, setResult] = useState("");
   const [isListening, setIsListening] = useState(false);
-  // const porcupineManager = useRef(null);
-    const porcupineManager = React.createRef();
+  const [heySiriDetected, setHeySiriDetected] = useState(false);
 
-  const [audioData, setAudioData] = useState([]);
-
-    // useEffect(() => {
-    //   createPorcupine();
-
-    //   return () => {
-    //     if (porcupineManager.current) {
-    //       porcupineManager.current.delete();
-    //     }
-    //   };
-    // }, []);
-
-      const createPorcupine = async () => {
-        try {
-          porcupineManager.current = await Porcupine.fromBuiltInKeywords(
-            "MmtesG/JuNPsz0V6ExNm8xDbriUyOoLM7zI01V20Dx3qy8PsFiAhlw==",
-            [BuiltInKeywords.HEY_SIRI]
-          );
-        } catch (err) {
-          console.error("Failed to initialize Porcupine:", err);
-        }
-      };
-
-      const captureAudio = () => {
-        const audioCapture = new SomeAudioCaptureLibrary();
-
-        audioCapture.on("audioFrame", (frame) => {
-          processAudioFrame(frame);
-        });
-
-        audioCapture.start();
-      };
-
-const processAudioFrame = async (buffer) => {
-  try {
-    let keywordIndex = await porcupineManager.current.process(buffer);
-    if (keywordIndex >= 0) {
-      console.log("Wake word detected!");
-      setIsListening(true);
-      startRecording(); // This function is triggered when the keyword is detected
-      console.log("done")
+  let detectionCallback = (keywordIndex) => {
+    if (keywordIndex === 0) {
+      // detected `porcupine`
+      console.log("Detected Porcupine");
+    } else if (keywordIndex === 1) {
+      // detected `bumblebee`
+      console.log("Detected Bumblebee");
     }
-  } catch (e) {
-    console.error("Error processing audio frame:", e);
-  }
-};
+  };
 
   useEffect(() => {
-    createPorcupine();
-    captureAudio(); // Call captureAudio here
-
-    return () => {
-      if (porcupineManager.current) {
-        porcupineManager.current.delete();
-      }
-    };
+    initPorcupineManager(startRecording);
   }, []);
 
-        
+  async function initPorcupineManager() {
+    try {
+      const porcupineManager = await PorcupineManager.fromBuiltInKeywords(
+        "MmtesG/JuNPsz0V6ExNm8xDbriUyOoLM7zI01V20Dx3qy8PsFiAhlw==",
+        [BuiltInKeywords.HEY_GOOGLE, BuiltInKeywords.HEY_SIRI],
+        (keywordIndex) => {
+          if (keywordIndex === 0) {
+            console.log("Detected Hey Google");
+          } else if (keywordIndex === 1) {
+            console.log("Detected Hey Siri");
+            setHeySiriDetected(true);
+            startRecording();
+          }
+        }
+      );
+      await porcupineManager.start();
+    } catch (error) {
+      console.error("Error initializing PorcupineManager:", error);
+    }
+  }
+
+  function startRecording() {
+    setRecording(true);
+    try {
+      Voice.start("en-US");
+    } catch (error) {
+      console.log("Error: ", error);
+    }
+  }
 
   const speechStartHandler = (e) => {
     console.log("Speech Start Handler");
@@ -109,21 +90,22 @@ const processAudioFrame = async (buffer) => {
     console.log("Voice Event", e);
     const text = e.value[0]; // Assuming you want the first complete result
     setResult(text);
-    fetchresponse(text); 
+    fetchresponse(text);
   };
 
   const speechErrorHandler = (e) => {
     console.log("speech error handler", e);
   };
 
-  const startRecording = async () => {
-    setRecording(true);
-    try {
-      await Voice.start("en-US", "ar-EG");
-    } catch (error) {
-      console.log("Error: ", error);
-    }
-  };
+  // const startRecording = async () => {
+  //   setRecording(true);
+  //   if (heySiriDetected){
+  //     try {
+  //       await Voice.start("en-US", "ar-EG");
+  //     } catch (error) {
+  //       console.log("Error: ", error);
+  //     }
+  // };
 
   const stopRecording = async () => {
     try {
@@ -139,7 +121,10 @@ const processAudioFrame = async (buffer) => {
   const fetchresponse = (text) => {
     if (text.trim().length > 0) {
       // Update the messages array with the actual result
-      setMessages(prevMessages => [...prevMessages, { role: "user", content: text }]);
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { role: "user", content: text },
+      ]);
     }
   };
 
@@ -164,8 +149,6 @@ const processAudioFrame = async (buffer) => {
   }, []);
 
   console.log("result: ", result);
-
-  
 
   return (
     <ImageBackground source={colorimage} className="flex-1" resizeMode="cover">
