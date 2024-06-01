@@ -6,11 +6,9 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
-  LogBox,
   ImageBackground,
 } from "react-native";
 import React, { useEffect, useState } from "react";
-// import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   PorcupineManager,
   BuiltInKeywords,
@@ -20,7 +18,6 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
-// import Features from "../components/features";
 import { dummyMessages } from "../constants";
 import Voice from "@react-native-voice/voice";
 const colorimage = require("../../assets/FBG.png");
@@ -33,18 +30,8 @@ export default function MainScreen() {
   const [isListening, setIsListening] = useState(false);
   const [heySiriDetected, setHeySiriDetected] = useState(false);
 
-  let detectionCallback = (keywordIndex) => {
-    if (keywordIndex === 0) {
-      // detected `porcupine`
-      console.log("Detected Porcupine");
-    } else if (keywordIndex === 1) {
-      // detected `bumblebee`
-      console.log("Detected Bumblebee");
-    }
-  };
-
   useEffect(() => {
-    initPorcupineManager(startRecording);
+    initPorcupineManager();
   }, []);
 
   async function initPorcupineManager() {
@@ -68,14 +55,16 @@ export default function MainScreen() {
     }
   }
 
-  function startRecording() {
+function startRecording() {
+  console.log("Starting recording...");
+  try {
+    Voice.start("en-US");
     setRecording(true);
-    try {
-      Voice.start("en-US");
-    } catch (error) {
-      console.log("Error: ", error);
-    }
+  } catch (error) {
+    console.error("Error starting voice recording: ", error);
+    setRecording(false);
   }
+}
 
   const speechStartHandler = (e) => {
     console.log("Speech Start Handler");
@@ -93,19 +82,23 @@ export default function MainScreen() {
     fetchresponse(text);
   };
 
-  const speechErrorHandler = (e) => {
-    console.log("speech error handler", e);
+  const retryRecording = () => {
+    setTimeout(() => {
+      startRecording();
+    }, 1000); // Retry after 1 second
   };
 
-  // const startRecording = async () => {
-  //   setRecording(true);
-  //   if (heySiriDetected){
-  //     try {
-  //       await Voice.start("en-US", "ar-EG");
-  //     } catch (error) {
-  //       console.log("Error: ", error);
-  //     }
-  // };
+const speechErrorHandler = (e) => {
+  console.log("Speech error handler", e);
+  if (e.error && e.error.message) {
+    console.error(`Error code: ${e.error.code}, message: ${e.error.message}`);
+    if (e.error.code === 7) {
+      console.error(
+        "No match found. Please try speaking more clearly or use a different phrase."
+      );
+    }
+  }
+};
 
   const stopRecording = async () => {
     try {
@@ -136,17 +129,16 @@ export default function MainScreen() {
     setSpeaking(false);
   };
 
-  useEffect(() => {
-    // voice handler events
-    Voice.onSpeechStart = speechStartHandler;
-    Voice.onSpeechEnd = speechEndHandler;
-    Voice.onSpeechResults = speechResultHandler;
-    Voice.onSpeechError = speechErrorHandler;
+useEffect(() => {
+  Voice.onSpeechStart = speechStartHandler;
+  Voice.onSpeechEnd = speechEndHandler;
+  Voice.onSpeechResults = speechResultHandler;
+  Voice.onSpeechError = speechErrorHandler;
 
-    return () => {
-      Voice.destroy().then(Voice.removeAllListeners);
-    };
-  }, []);
+  return () => {
+    Voice.destroy().then(Voice.removeAllListeners);
+  };
+}, []);
 
   console.log("result: ", result);
 
@@ -246,26 +238,9 @@ export default function MainScreen() {
                 <Image
                   className="rounded-full mb-20 bottom-5"
                   source={require("../../assets/microphone.png")}
-                  // style={{ width: hp(10), height: hp(10) }}
                 />
               </TouchableOpacity>
             )}
-            {/* {messages.length > 0 && (
-              <TouchableOpacity
-                onPress={clear}
-                className="bg-neutral-400 rounded-3xl p-2 absolute right-10 top-5"
-              > */}
-            {/* <Text className="text-white font-semibold">Clear</Text> */}
-            {/* </TouchableOpacity>
-            )} */}
-            {/* {speaking && (
-              <TouchableOpacity
-                onPress={stopSpeaking}
-                className="bg-red-400 rounded-3xl p-2 absolute left-10 top-5"
-              >
-                <Text className="text-white font-semibold">Stop</Text>
-              </TouchableOpacity>
-            )} */}
           </View>
           <Text>{isListening ? "Listening..." : 'Say "Hey PicoVoice"'}</Text>
         </SafeAreaView>
