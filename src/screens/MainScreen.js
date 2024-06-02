@@ -34,18 +34,48 @@ export default function MainScreen() {
     initPorcupineManager();
   }, []);
 
+  useEffect(() => {
+    console.log("Initializing Voice module...");
+    Voice.onSpeechStart = speechStartHandler;
+    Voice.onSpeechEnd = speechEndHandler;
+    Voice.onSpeechResults = speechResultHandler;
+    Voice.onSpeechError = speechErrorHandler;
+
+    Voice.isAvailable()
+      .then((available) => {
+        if (available) {
+          console.log("Voice module is available and initialized.");
+        } else {
+          console.error("Voice module is not available.");
+        }
+      })
+      .catch((error) => {
+        console.error("Error checking Voice module availability:", error);
+      });
+
+    return () => {
+      Voice.destroy().then(Voice.removeAllListeners);
+    };
+  }, []);
+
+  let lastDetectionTime = 0;
+  const debounceTime = 3000; // 3 seconds
   async function initPorcupineManager() {
     try {
       const porcupineManager = await PorcupineManager.fromBuiltInKeywords(
         "MmtesG/JuNPsz0V6ExNm8xDbriUyOoLM7zI01V20Dx3qy8PsFiAhlw==",
         [BuiltInKeywords.HEY_GOOGLE, BuiltInKeywords.HEY_SIRI],
         (keywordIndex) => {
-          if (keywordIndex === 0) {
-            console.log("Detected Hey Google");
-          } else if (keywordIndex === 1) {
-            console.log("Detected Hey Siri");
-            setHeySiriDetected(true);
-            startRecording();
+          const currentTime = Date.now();
+          if (currentTime - lastDetectionTime > debounceTime) {
+            lastDetectionTime = currentTime;
+            if (keywordIndex === 0) {
+              console.log("Detected Hey Google");
+            } else if (keywordIndex === 1) {
+              console.log("Detected Hey Siri");
+              setHeySiriDetected(true);
+              startRecording();
+            }
           }
         }
       );
@@ -55,16 +85,31 @@ export default function MainScreen() {
     }
   }
 
-function startRecording() {
-  console.log("Starting recording...");
-  try {
-    Voice.start("en-US");
+  const stopRecordingAfterDuration = (duration) => {
+    setTimeout(() => {
+      stopRecording();
+    }, duration);
+  };
+
+  const startRecording = async () => {
     setRecording(true);
-  } catch (error) {
-    console.error("Error starting voice recording: ", error);
-    setRecording(false);
-  }
-}
+    try {
+      await Voice.start("en-US");
+      stopRecordingAfterDuration(10000); // Stop recording after 10 seconds
+    } catch (error) {
+      console.log("Error: ", error);
+    }
+  };
+
+  const stopRecording = async () => {
+    try {
+      await Voice.stop();
+      setRecording(false);
+      fetchresponse();
+    } catch (error) {
+      console.log("Error stopping the recording: ", error);
+    }
+  };
 
   const speechStartHandler = (e) => {
     console.log("Speech Start Handler");
@@ -82,12 +127,6 @@ function startRecording() {
     fetchresponse(text);
   };
 
-  const retryRecording = () => {
-    setTimeout(() => {
-      startRecording();
-    }, 1000); // Retry after 1 second
-  };
-
 const speechErrorHandler = (e) => {
   console.log("Speech error handler", e);
   if (e.error && e.error.message) {
@@ -96,24 +135,22 @@ const speechErrorHandler = (e) => {
       console.error(
         "No match found. Please try speaking more clearly or use a different phrase."
       );
+      // Retry mechanism
+      setTimeout(() => {
+        startRecording();
+      }, 1000); // Retry after 1 second
+    } else {
+      // Handle other errors
+      console.error(
+        "An error occurred during speech recognition:",
+        e.error.message
+      );
     }
   }
 };
 
-  const stopRecording = async () => {
-    try {
-      await Voice.stop();
-      setRecording(false);
-      // Immediately fetch and display the response
-      fetchresponse();
-    } catch (error) {
-      console.log("Error stopping the recording: ", error);
-    }
-  };
-
   const fetchresponse = (text) => {
     if (text.trim().length > 0) {
-      // Update the messages array with the actual result
       setMessages((prevMessages) => [
         ...prevMessages,
         { role: "user", content: text },
@@ -128,17 +165,6 @@ const speechErrorHandler = (e) => {
   const stopSpeaking = () => {
     setSpeaking(false);
   };
-
-useEffect(() => {
-  Voice.onSpeechStart = speechStartHandler;
-  Voice.onSpeechEnd = speechEndHandler;
-  Voice.onSpeechResults = speechResultHandler;
-  Voice.onSpeechError = speechErrorHandler;
-
-  return () => {
-    Voice.destroy().then(Voice.removeAllListeners);
-  };
-}, []);
 
   console.log("result: ", result);
 
