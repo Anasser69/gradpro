@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,25 +10,32 @@ import {
   LogBox,
   ImageBackground,
 } from "react-native";
-import React, { useEffect, useState } from "react";
-// import AsyncStorage from "@react-native-async-storage/async-storage";
-import FirstScreen from "./FirstScreen";
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
-// import Features from "../components/features";
-import { dummyMessages } from "../constants";
 import Voice from "@react-native-voice/voice";
+import FirstScreen from "./FirstScreen";
+import { dummyMessages } from "../constants";
+
+import { useTranslator } from "react-native-translator";
+
 const colorimage = require("../../assets/FBG.png");
+
 export default function MainScreen() {
   LogBox.ignoreLogs(["new NativeEventEmitter()"]); // Ignore log notification by message
-  LogBox.ignoreAllLogs(); //Ignore all log notifications
-
+  LogBox.ignoreAllLogs();
+  const { translate } = useTranslator();
+  const [value, setValue] = useState(""); //Ignore all log notifications
   const [messages, setMessages] = useState(dummyMessages);
   const [recording, setRecording] = useState(false);
   const [speaking, setSpeaking] = useState(true);
   const [result, setResult] = useState("");
+
+    const onTranslate = async () => {
+      const _result = await translate("en", "fr", value);
+      setResult(_result);
+    };
 
   const speechStartHandler = (e) => {
     console.log("Speech Start Handler");
@@ -69,10 +77,26 @@ export default function MainScreen() {
     }
   };
 
-  const fetchresponse = (text) => {
+  const fetchresponse = async (text) => {
     if (text.trim().length > 0) {
       // Update the messages array with the actual result
-      setMessages(prevMessages => [...prevMessages, { role: "user", content: text }]);
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { role: "user", content: text },
+      ]);
+      // const languages = ["es", "fr", "de"]; // Spanish, French, German
+      // for (const lang of languages) {
+      //   try {
+      //     const translatedText = await Translator.translate(text, lang);
+      //     // Add translated text to messages
+      //     setMessages((prevMessages) => [
+      //       ...prevMessages,
+      //       { role: "assisstant", content: translatedText },
+      //     ]);
+      //   } catch (error) {
+      //     console.log("Translation error: ", error);
+      //   }
+      // }
     }
   };
 
@@ -180,6 +204,11 @@ export default function MainScreen() {
             <FirstScreen />
           )}
           {/* recording , clear , stop  */}
+            <View>
+      <TextInput value={value} onChangeText={(t) => setValue(t)} />
+      <Text>{result}</Text>
+      <Button title="translate" onPress={onTranslate} />
+    </View>
           <View className="flex justify-center items-center">
             {recording ? (
               <TouchableOpacity onPress={stopRecording}>
@@ -203,8 +232,8 @@ export default function MainScreen() {
                 onPress={clear}
                 className="bg-neutral-400 rounded-3xl p-2 absolute right-10 top-5"
               > */}
-                {/* <Text className="text-white font-semibold">Clear</Text> */}
-              {/* </TouchableOpacity>
+            {/* <Text className="text-white font-semibold">Clear</Text> */}
+            {/* </TouchableOpacity>
             )} */}
             {/* {speaking && (
               <TouchableOpacity
