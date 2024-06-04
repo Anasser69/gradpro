@@ -111,52 +111,52 @@ export default function MainScreen() {
     }
   };
 
-  const speechStartHandler = (e) => {
-    console.log("Speech Start Handler");
-  };
+ const speechStartHandler = (e) => {
+   console.log("Speech Start Handler");
+ };
 
-  const speechEndHandler = (e) => {
-    setRecording(false);
-    console.log("Speech End Handler");
-  };
+ const speechEndHandler = (e) => {
+   setRecording(false);
+   console.log("Speech End Handler");
+ };
 
-  const speechResultHandler = (e) => {
-    console.log("Voice Event", e);
-    const text = e.value[0]; // Assuming you want the first complete result
-    setResult(text);
-    fetchresponse(text);
-  };
+ const speechResultHandler = (e) => {
+   console.log("Voice Event", e);
+   const text = e.value[0]; // Assuming you want the first complete result
+   setResult(text);
+   fetchresponse(text);
+ };
 
-const speechErrorHandler = (e) => {
-  console.log("Speech error handler", e);
-  if (e.error && e.error.message) {
-    console.error(`Error code: ${e.error.code}, message: ${e.error.message}`);
-    if (e.error.code === 7) {
-      console.error(
-        "No match found. Please try speaking more clearly or use a different phrase."
-      );
-      // Retry mechanism
-      setTimeout(() => {
-        startRecording();
-      }, 1000); // Retry after 1 second
-    } else {
-      // Handle other errors
-      console.error(
-        "An error occurred during speech recognition:",
-        e.error.message
-      );
-    }
+ const speechErrorHandler = (e) => {
+   console.log("Speech error handler", e);
+   if (e.error && e.error.message) {
+     console.error(`Error code: ${e.error.code}, message: ${e.error.message}`);
+     if (e.error.code === 7) {
+       console.error(
+         "No match found. Please try speaking more clearly or use a different phrase."
+       );
+       // Retry mechanism
+       setTimeout(() => {
+         startRecording();
+       }, 1000); // Retry after 1 second
+     } else {
+       // Handle other errors
+       console.error(
+         "An error occurred during speech recognition:",
+         e.error.message
+       );
+     }
+   }
+ };
+
+const fetchresponse = (text) => {
+  if (text.trim().length > 0) {
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      { role: "user", content: text },
+    ]);
   }
 };
-
-  const fetchresponse = (text) => {
-    if (text.trim().length > 0) {
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        { role: "user", content: text },
-      ]);
-    }
-  };
 
   const clear = () => {
     setMessages([]);
